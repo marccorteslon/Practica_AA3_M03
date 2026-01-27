@@ -3,6 +3,7 @@
 #include <sstream>
 #include <fstream>
 #include <cctype>
+#include <limits>
 #include "Utils.h"
 #include "ConsoleControl.h"
 
@@ -96,42 +97,16 @@ bool loadMap() {
 	return 1;
 }
 
-//bool loadMap() {
-//	std::ifstream file("map.txt");
-//
-//	if (!file.is_open()) {
-//		std::cout << "Error: No se pudo abrir map.txt" << std::endl;
-//		return false;
-//	}
-//
-//	std::string line;
-//	int row = 0;
-//
-//	while (std::getline(file, line) && row < MAP_SIZE_H) {
-//		if (line.length() < MAP_SIZE_W) {
-//			std::cout << "El mapa tiene que ser 10x10 (err1)";
-//		}
-//
-//		for (int col = 0; col < MAP_SIZE_W; col++) {
-//			map[row][col] = line[col];
-//		}
-//
-//		row++;
-//	}
-//
-//	if (row < MAP_SIZE_H) {
-//		std::cout << "El mapa tiene que ser 10x10 (err2)";
-//		return false;
-//	}
-//}
-
 
 bool saveGame(const Player& player) {
-	std::ofstream archivoGuardado("savegame.txt");
+
+	std::string fileName = "save_" + player.name + ".txt";
+
+	std::ofstream archivoGuardado(fileName);
 
 	if (!archivoGuardado.is_open()) {
-		std::cout << "Error el guardar\n";
-		return false;
+	std::cout << "Error el guardar\n";
+	return false;
 	}
 
 	archivoGuardado << player.name << std::endl;
@@ -148,6 +123,29 @@ bool saveGame(const Player& player) {
 	return true;
 
 }
+
+//bool saveGame(const Player& player) {
+//	std::ofstream archivoGuardado("savegame.txt");
+//
+//	if (!archivoGuardado.is_open()) {
+//		std::cout << "Error el guardar\n";
+//		return false;
+//	}
+//
+//	archivoGuardado << player.name << std::endl;
+//	archivoGuardado << player.posX << std::endl;
+//	archivoGuardado << player.posY << std::endl;
+//	archivoGuardado << player.maxHealth << std::endl;
+//	archivoGuardado << player.currentHealth << std::endl;
+//	archivoGuardado << player.potions << std::endl;
+//	archivoGuardado << player.hasSword << std::endl;
+//	archivoGuardado << player.hasBomb << std::endl;
+//	archivoGuardado << player.hasKey << std::endl;
+//
+//	archivoGuardado.close();
+//	return true;
+//
+//}
 
 void printMap() {
 	for (int i = 0; i < MAP_SIZE_H; i++) {//Primero las filas (Y)
@@ -232,11 +230,55 @@ void printEntities() {
 	ConsoleXY(0, MAP_SIZE_H + 1);
 }
 
+int mainMenu() {
+
+	int option = 0;
+
+	while (true) {
+
+		system("cls");
+
+		std::cout << "    =====================\n";
+		std::cout << "    >>>> HERO'S QUEST <<<<\n";
+		std::cout << "    =====================\n\n";
+
+		std::cout << "1. PLAY\n";
+		std::cout << "2. LOAD\n";
+		std::cout << "0. EXIT\n\n";
+
+		std::cout << "> ";
+		std::cin >> option;
+
+		if (option >= 0 && option <= 2) {
+			return option;
+		}
+
+		std::cout << "Opcion invalida...\n";
+		system("pause");
+	}
+}
+
+
 int main() {
 
-	if (!loadMap()) {
-		return 1;
-	}
+    int option = mainMenu();
+
+	std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); //Esto es para limpiar el cin
+
+    if (option == 0) {
+        return 0;
+    }
+
+    if (option == 2) {
+        std::cout << "LOAD aun no implementado\n";
+        system("pause");
+        return 0;
+    }
+
+    if (!loadMap()) {
+        return 1;
+    }
+
 	
 	bool game_end = false;
 	bool attack_end = false;
@@ -303,47 +345,168 @@ int main() {
 				std::cout << "Player at [" + itos(playerInfo.posX, 1) + ", " + itos(playerInfo.posY, 1) + "]" << std::endl;
 			}
 		}
+
+		// MODO COMBATE
+
 		else {
 
-			//if (!attack_end) {
-				std::cout << "En combate!\nUsa attack, use, status, help\n";
-				playerInfo.currentHealth = playerInfo.currentHealth - 10;
-				std::cout << playerInfo.name << " [ " << playerInfo.currentHealth << " / " << playerInfo.maxHealth << " ]";
-				std::cout << "\n\nvs\n\n";
-				std::cout << goblinInfo.name << " [ " << goblinInfo.currentHealth << " / " << goblinInfo.maxHealth << " ]";
-				std::cout << "\n\nWhat will you do?\n\n";
+			system("cls");
 
-				//std::getline(std::cin, input);
+			std::cout << "===== COMBATE =====\n\n";
 
-				for (int i = 0; i < input.length(); i++) {
-					input[i] = std::tolower(input[i]);
+			std::cout << playerInfo.name
+				<< " [ " << playerInfo.currentHealth
+				<< " / " << playerInfo.maxHealth << " ]\n";
+
+			std::cout << "VS\n";
+
+			std::cout << goblinInfo.name
+				<< " [ " << goblinInfo.currentHealth
+				<< " / " << goblinInfo.maxHealth << " ]\n\n";
+
+			std::cout << "Comandos: attack | use potion | status | help\n";
+			std::cout << "> ";
+
+			// Leer input
+
+			std::getline(std::cin, input);
+
+			// Convertir a minúsculas
+
+			for (char& c : input) {
+				c = std::tolower(c);
+			}
+
+			// Separar palabras
+
+			std::vector<std::string> words = splitString(input, ' ');
+
+			if (words.size() == 0) continue;
+
+			std::string command = words[0];
+			std::string target = (words.size() > 1) ? words[1] : "";
+
+			// Comando attack
+
+			if (command == "attack") {
+
+				int damage = 10;
+
+				if (playerInfo.hasSword) {
+					damage += 5;
 				}
 
-				//std::cout << input;
+				goblinInfo.currentHealth -= damage;
 
-				if (goblinInfo.currentHealth <= 0) {
-					attack_end = true;
-					in_combat = false;
-					pedirInput = false;
-					std::cout << "Has derrotado al enemigo!";
-				}
+				std::cout << "\nYour attack does "
+					<< damage << " damage!\n";
+			}
 
-				if (playerInfo.currentHealth <= 0) {
-					game_end = true;
-					std::cout << "HAS MUERTO!";
+			// Comando use
+
+			else if (command == "use" && target == "potion") {
+
+				if (playerInfo.potions > 0) {
+
+					playerInfo.currentHealth += 40;
+
+					if (playerInfo.currentHealth > playerInfo.maxHealth)
+						playerInfo.currentHealth = playerInfo.maxHealth;
+
+					playerInfo.potions--;
+
+					std::cout << "\nYou used a potion!\n";
 				}
-				//TODO: Terminar lo del modo combate
-			
-			//}
-			
+				else {
+					std::cout << "\nNo potions!\n";
+				}
+			}
+
+			else if (command == "use" && target == "bomb") {
+
+				if (playerInfo.hasBomb) {
+
+					goblinInfo.currentHealth -= 50;
+					playerInfo.hasBomb = false;
+
+					std::cout << "\nYou throw a bomb!\n";
+				}
+				else {
+					std::cout << "\nNo bombs!\n";
+				}
+			}
+
+			else if (command == "save") {
+				if (saveGame(playerInfo)) {
+					std::cout << "\nGame saved!\n";
+				}
+				else {
+					std::cout << "\nError.\n";
+				}
+			}
+
+			// Comando status
+
+			else if (command == "status") {
+
+				std::cout << "\n--- STATUS ---\n";
+				std::cout << "Health: " << playerInfo.currentHealth << "\n";
+				std::cout << "Potions: " << playerInfo.potions << "\n";
+			}
+
+			else if (command == "save") {
+				if (saveGame(playerInfo)) {
+					std::cout << "\nGame saved!\n";
+				}
+			}
+
+			else if (command == "help") {
+
+				std::cout << "\nComands:\n";
+				std::cout << "attack\n";
+				std::cout << "use potion\n";
+				std::cout << "use bomb\n";
+				std::cout << "status\n";
+			}
+
+			else {
+
+				std::cout << "\nComando inválido\n";
+			}
+
+			// Turno enemigo
+
+			if (goblinInfo.currentHealth > 0) {
+
+				int enemyDamage = 8;
+
+				playerInfo.currentHealth -= enemyDamage;
+
+				std::cout << "\nThe enemies does "
+					<< enemyDamage << " damage!\n";
+			}
+
+			// Comprovar muerte
+
+			if (goblinInfo.currentHealth <= 0) {
+
+				std::cout << "\nYou won the combat!\n";
+
+				in_combat = false;
+				pedirInput = false;
+
+				map[playerInfo.posY][playerInfo.posX] = '.';
+			}
+
+			if (playerInfo.currentHealth <= 0) {
+
+				std::cout << "\nYOU DIED!\n";
+				game_end = true;
+			}
+
+			system("pause");
 		}
 
-
-		// -------
-		
-		//Pedir input al jugador
-		
-		// -------
 
 #pragma region input
 
@@ -370,108 +533,6 @@ int main() {
 			if (num_words > 1) {
 				target = input_split[1];
 			}
-
-			//if (!in_combat && command == "go") { //Comandos de dirección
-			//	int nextPosX = playerInfo.posX;
-			//	int nextPosY = playerInfo.posY;
-			//	if (target == "north") {
-			//		nextPosY--;
-			//	}
-			//	else if (target == "south") {
-			//		nextPosY++;
-			//	}
-			//	else if (target == "east") {
-			//		nextPosX++;
-			//	}
-			//	else if (target == "west") {
-			//		nextPosX--;
-			//	}
-			//	else {
-			//		std::cout << "Not a valid direction" << std::endl;
-			//	}
-			//	if (nextPosX != playerInfo.posX || nextPosY != playerInfo.posY) {//Si hay un intento de movimiento
-			//		if (nextPosX >= 0 && nextPosX < MAP_SIZE_W && nextPosY >= 0 && nextPosY < MAP_SIZE_H && map[nextPosY][nextPosX] != '#') {//Si no hay una pared
-			//			//Como c++ es "lazy", si las comprobaciones de nextPosX e Y fallan, no se mirar�n las posiciones en el map, pero no todos los lenguajes de programaci�n son as�
-			//			playerInfo.posX = nextPosX;
-			//			playerInfo.posY = nextPosY;
-			//			std::cout << "Player went " + target << std::endl;
-
-			//			if (map[playerInfo.posY][playerInfo.posX] == 'G') {//Si hay un enemigo
-
-			//				in_combat = true;
-			//				currentBattle = 'G'; //TODO: La funcionalidad de lo que pasa al matar a un enemigo
-
-			//			}
-			//			if (map[playerInfo.posY][playerInfo.posX] == 'O') {//Si hay un enemigo
-
-			//				in_combat = true;
-			//				currentBattle = 'O';
-
-			//			}
-			//			if (map[playerInfo.posY][playerInfo.posX] == 'T') {//Si hay un enemigo
-
-			//				in_combat = true;
-			//				currentBattle = 'T';
-
-			//			}
-			//			if (map[playerInfo.posY][playerInfo.posX] == 'J') {//Si hay un enemigo
-
-			//				in_combat = true;
-			//				currentBattle = 'J';
-
-			//			}
-			//			if (map[playerInfo.posY][playerInfo.posX] == 'S') {//Si recoge espada
-
-			//				playerInfo.hasSword = true;
-
-			//				std::cout << "Sword picked up!";
-
-			//				map[playerInfo.posY][playerInfo.posX] = '.'; //Cambiar por punto
-			//			}
-
-			//			if (map[playerInfo.posY][playerInfo.posX] == 'B') {//Si recoge bomba
-
-			//				playerInfo.hasBomb = true;
-
-			//				std::cout << "Bomb picked up!";
-
-			//				map[playerInfo.posY][playerInfo.posX] = '.'; //Cambiar por punto
-			//			}
-			//			if (map[playerInfo.posY][playerInfo.posX] == 'K') {//Si recoge llave
-
-			//				playerInfo.hasKey = true;
-
-			//				std::cout << "Key picked up!";
-
-			//				map[playerInfo.posY][playerInfo.posX] = '.'; //Cambiar por punto
-			//			}
-			//			if (map[playerInfo.posY][playerInfo.posX] == 'P') {//Si recoge pocion
-
-			//				playerInfo.potions++;
-
-			//				std::cout << "Potion picked up!";
-
-			//				map[playerInfo.posY][playerInfo.posX] = '.'; //Cambiar por punto
-			//			}
-			//			if (map[playerInfo.posY][playerInfo.posX] == 'L') {//Si hay puerta cerrada
-
-			//				if (playerInfo.hasKey) {
-
-			//					std::cout << "\nPuerta abierta\n";
-
-			//					map[playerInfo.posY][playerInfo.posX] = '.'; //Cambiar por punto
-			//				}
-			//				else {
-			//					std::cout << "\nPuerta cerrada, necesitas llave\n";
-			//				}
-			//			}
-			//		}
-
-			//		else {
-			//			std::cout << "Player tried to go " + target + " but found a wall" << std::endl;
-			//		}
-			//	}
-			//}
 
 			if (!in_combat && command == "pick") {
 
