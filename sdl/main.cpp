@@ -365,6 +365,7 @@ int main() {
 	//TODO: Hacer una intro, pedir el nombre al jugador, etc.
 	if (!loadedGame) {
 		std::cout << "HERO'S QUEST\nHi, hero, what's your name?" << std::endl;
+		std::cout << "The name you put will be the name of the save\n(By the moment, you can only save in attack mode)" << std::endl;
 		std::cout << "> ";
 		std::cin >> playerInfo.name;
 	}
