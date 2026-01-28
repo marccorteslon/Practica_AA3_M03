@@ -22,8 +22,8 @@ struct Player {
 	int maxHealth = 100;
 	int currentHealth = 100;
 	int potions = 0;
+	int bombs = 0;
 	int hasSword = true;
-	int hasBomb = true;
 	int hasKey = true;
 };
 
@@ -67,7 +67,7 @@ bool in_combat = false;
 
 bool pedirInput = false;
 
-
+bool loadedGame = false;
 
 //TODO: Hacer los structs necesarios para guardar otra info
 
@@ -97,6 +97,7 @@ bool loadMap() {
 	return 1;
 }
 
+// GUARDAR
 
 bool saveGame(const Player& player) {
 
@@ -116,7 +117,7 @@ bool saveGame(const Player& player) {
 	archivoGuardado << player.currentHealth << std::endl;
 	archivoGuardado << player.potions << std::endl;
 	archivoGuardado << player.hasSword << std::endl;
-	archivoGuardado << player.hasBomb << std::endl;
+	archivoGuardado << player.bombs << std::endl;
 	archivoGuardado << player.hasKey << std::endl;
 
 	archivoGuardado.close();
@@ -124,28 +125,34 @@ bool saveGame(const Player& player) {
 
 }
 
-//bool saveGame(const Player& player) {
-//	std::ofstream archivoGuardado("savegame.txt");
-//
-//	if (!archivoGuardado.is_open()) {
-//		std::cout << "Error el guardar\n";
-//		return false;
-//	}
-//
-//	archivoGuardado << player.name << std::endl;
-//	archivoGuardado << player.posX << std::endl;
-//	archivoGuardado << player.posY << std::endl;
-//	archivoGuardado << player.maxHealth << std::endl;
-//	archivoGuardado << player.currentHealth << std::endl;
-//	archivoGuardado << player.potions << std::endl;
-//	archivoGuardado << player.hasSword << std::endl;
-//	archivoGuardado << player.hasBomb << std::endl;
-//	archivoGuardado << player.hasKey << std::endl;
-//
-//	archivoGuardado.close();
-//	return true;
-//
-//}
+// CARGAR
+
+bool loadGame(Player& player, const std::string& name) {
+
+	std::string fileName = "save_" + name + ".txt";
+
+	std::ifstream archivo(fileName);
+
+	if (!archivo.is_open()) {
+		std::cout << "Can't open save file.\n";
+		return false;
+	}
+
+	std::getline(archivo, player.name);
+
+	archivo >> player.posX;
+	archivo >> player.posY;
+	archivo >> player.maxHealth;
+	archivo >> player.currentHealth;
+	archivo >> player.potions;
+	archivo >> player.hasSword;
+	archivo >> player.bombs;
+	archivo >> player.hasKey;
+
+	archivo.close();
+
+	return true;
+}
 
 void printMap() {
 	for (int i = 0; i < MAP_SIZE_H; i++) {//Primero las filas (Y)
@@ -214,6 +221,34 @@ void movePlayer(Direction dir) {
 				//currentBattle = 'G'; //TODO: La funcionalidad de lo que pasa al matar a un enemigo
 
 			}
+			if (map[playerInfo.posY][playerInfo.posX] == 'O') {//Si hay un orco
+
+				in_combat = true;
+				pedirInput = true;
+				std::cout << "Enemigo! (debug)";
+				//currentBattle = 'G'; //TODO: La funcionalidad de lo que pasa al matar a un enemigo
+
+			}
+			if (map[playerInfo.posY][playerInfo.posX] == 'P') {//Si hay una poción
+
+				playerInfo.potions++;
+				map[playerInfo.posY][playerInfo.posX] == '.';
+			}
+			if (map[playerInfo.posY][playerInfo.posX] == 'B') {//Si hay una bomba
+
+				playerInfo.bombs++;
+				map[playerInfo.posY][playerInfo.posX] == '.';
+			}
+			if (map[playerInfo.posY][playerInfo.posX] == 'K') {//Si hay una llave
+
+				playerInfo.hasKey = true;
+				map[playerInfo.posY][playerInfo.posX] == '.';
+			}
+			if (map[playerInfo.posY][playerInfo.posX] == 'S') {//Si hay una espada
+
+				playerInfo.hasSword = true;
+
+			}
 		}
 
 		//Mirar qué pasa en la siguiente celda
@@ -265,14 +300,25 @@ int main() {
 
 	std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); //Esto es para limpiar el cin
 
-    if (option == 0) {
+    if (option == 0) { //salir
         return 0;
     }
 
-    if (option == 2) {
-        std::cout << "LOAD aun no implementado\n";
-        system("pause");
-        return 0;
+    if (option == 2) { //cargar
+		std::string name;
+
+		std::cout << "Player Name: ";
+		std::cin >> name;
+
+		if (!loadGame(playerInfo, name)) {
+			system("pause");
+			return 0;
+		}
+
+		loadedGame = true;
+
+		std::cout << "Loaded!\n;";
+		system("pause");
     }
 
     if (!loadMap()) {
@@ -297,14 +343,17 @@ int main() {
 
 	bool playerFound = false;
 
+	
 	//Recorro todas las celdas del mapa
 	for (int i = 0; i < MAP_SIZE_H; i++) {//Primero las filas (Y)
 		for (int j = 0; j < MAP_SIZE_W; j++) {//Por cada fila, las columnas (X)
-			if (map[i][j] == '@') {//Encuentro el player
-				playerInfo.posX = j;
-				playerInfo.posY = i;
-				map[i][j] = '.';
-				//playerFound = true; //Hacemos esto para luego poder romper el bucle i
+			if (!loadedGame) {
+				if (map[i][j] == '@') {//Encuentro el player
+					playerInfo.posX = j;
+					playerInfo.posY = i;
+					map[i][j] = '.';
+					//playerFound = true; //Hacemos esto para luego poder romper el bucle i
+				}
 			}
 			if (map[i][j] == 'J') {//Encuentro el boss
 				bossPos[0] = i;
@@ -314,9 +363,11 @@ int main() {
 	}
 
 	//TODO: Hacer una intro, pedir el nombre al jugador, etc.
-	std::cout << "HERO'S QUEST\nHi, hero, what's your name?" << std::endl;
-	std::cout << "> ";
-	std::cin >> playerInfo.name;
+	if (!loadedGame) {
+		std::cout << "HERO'S QUEST\nHi, hero, what's your name?" << std::endl;
+		std::cout << "> ";
+		std::cin >> playerInfo.name;
+	}
 	//std::getline(std::cin, playerInfo.name);
 
 
@@ -424,10 +475,10 @@ int main() {
 
 			else if (command == "use" && target == "bomb") {
 
-				if (playerInfo.hasBomb) {
+				if (playerInfo.bombs) {
 
 					goblinInfo.currentHealth -= 50;
-					playerInfo.hasBomb = false;
+					playerInfo.bombs = false;
 
 					std::cout << "\nYou throw a bomb!\n";
 				}
@@ -448,10 +499,25 @@ int main() {
 			// Comando status
 
 			else if (command == "status") {
+				std::cout << "\n\n>> STATS: <<\n\n";
+				std::cout << "Health: [ " << playerInfo.currentHealth << " / " << playerInfo.maxHealth << " ]\n";
+				std::cout << "Inventory:\n";
+				if (playerInfo.hasSword) {
+					std::cout << "Sword\n";
+				}
+				else {
+					std::cout << "No sword\n";
+				}
 
-				std::cout << "\n--- STATUS ---\n";
-				std::cout << "Health: " << playerInfo.currentHealth << "\n";
-				std::cout << "Potions: " << playerInfo.potions << "\n";
+				if (playerInfo.hasKey) {
+					std::cout << "Key\n";
+				}
+				else {
+					std::cout << "No key\n";
+				}
+				std::cout << "Potions: " << playerInfo.potions << std::endl;
+				std::cout << "Bombs: " << playerInfo.bombs << std::endl;
+
 			}
 
 			else if (command == "save") {
@@ -555,7 +621,7 @@ int main() {
 				}
 			}
 			else if (in_combat && command == "use bomb") {
-				if (playerInfo.hasBomb) {
+				if (playerInfo.bombs) {
 					goblinInfo.currentHealth = goblinInfo.currentHealth - 100;
 				}
 			}
@@ -569,12 +635,7 @@ int main() {
 				else {
 					std::cout << "No sword\n";
 				}
-				if (playerInfo.hasSword) {
-					std::cout << "Bomb\n";
-				}
-				else {
-					std::cout << "No bomb\n";
-				}
+				
 				if (playerInfo.hasKey) {
 					std::cout << "Key\n";
 				}
@@ -582,6 +643,8 @@ int main() {
 					std::cout << "No key\n";
 				}
 				std::cout << "Potions: " << playerInfo.potions << std::endl;
+				std::cout << "Bombs: " << playerInfo.bombs << std::endl;
+
 			}
 			else if (command == "help") { //Comando para la ayuda
 				system("cls");
